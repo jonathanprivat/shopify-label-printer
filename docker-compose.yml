@@ -1,0 +1,40 @@
+# Docker Compose for Coolify ("Docker Compose" deployment type).
+# Coolify injects env vars from its UI; the ${VARS} below map to those.
+services:
+  label-printer:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_OWNER_IDS: ${TELEGRAM_OWNER_IDS:-}
+      # Shopify
+      SHOPIFY_SHOP: ${SHOPIFY_SHOP:-}
+      SHOPIFY_ADMIN_TOKEN: ${SHOPIFY_ADMIN_TOKEN:-}
+      SHOPIFY_API_VERSION: ${SHOPIFY_API_VERSION:-2025-01}
+      SHOPIFY_WEBHOOK_SECRET: ${SHOPIFY_WEBHOOK_SECRET:-}
+      # Printer (reached over the LAN from the container)
+      PRINTER_QUEUE: ${PRINTER_QUEUE:-Brother_QL_1110NWB}
+      PRINTER_URI: ${PRINTER_URI:-ipp://192.168.1.150/ipp/print}
+      PRINTER_MEDIA: ${PRINTER_MEDIA:-Custom.103x164mm}
+      LABEL_WIDTH_MM: ${LABEL_WIDTH_MM:-103}
+      LABEL_HEIGHT_MM: ${LABEL_HEIGHT_MM:-164}
+      # Server / behaviour
+      PORT: "8088"
+      WEBHOOK_PATH: ${WEBHOOK_PATH:-/webhooks/orders-create}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      MAX_LABELS: ${MAX_LABELS:-5}
+      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-120}
+      DATA_DIR: /data
+    volumes:
+      - label-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8088/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  label-data:
