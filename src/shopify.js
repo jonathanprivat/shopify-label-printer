@@ -65,7 +65,6 @@ const ORDER_FIELDS = `
   phone
   createdAt
   shippingLine { title code }
-  customer { phone }
   shippingAddress {
     name address1 address2 city province provinceCode zip country phone
   }
