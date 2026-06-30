@@ -36,14 +36,18 @@ export function renderLabelHtml(label) {
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
-  const notes = noteLines.length
-    ? `
+  // Always show the DRIVER NOTES section. When the order has notes, list them;
+  // otherwise render an empty box so there's always a spot (and the layout is
+  // consistent across labels).
+  const notesInner = noteLines.length
+    ? noteLines.map((l) => `<div>${esc(l)}</div>`).join('')
+    : '<div>&nbsp;</div><div>&nbsp;</div>';
+  const notes = `
       <div class="section">
         <div class="rule thin"></div>
-        <div class="label-heading">ORDER NOTES:</div>
-        <div class="notes-box">${noteLines.map((l) => `<div>${esc(l)}</div>`).join('')}</div>
-      </div>`
-    : '';
+        <div class="label-heading">DRIVER NOTES:</div>
+        <div class="notes-box">${notesInner}</div>
+      </div>`;
 
   return `<!doctype html>
 <html>
