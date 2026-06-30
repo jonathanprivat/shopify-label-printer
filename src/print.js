@@ -73,8 +73,9 @@ export async function printPdf(pdfPath, { copies = 1, timeoutMs = 60000 } = {}) 
 
   const args = [
     '-d', queue,
-    '-o', `media=${config.printer.media}`,
-    '-o', 'orientation-requested=3', // portrait, no rotation
+    // Only pass media if explicitly configured. On macOS/AirPrint the queue's
+    // own default media is correct and a Custom.* name can be rejected.
+    ...(config.printer.media ? ['-o', `media=${config.printer.media}`] : []),
     '-n', String(copies),
     pdfPath,
   ];

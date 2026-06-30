@@ -35,7 +35,9 @@ export const config = {
   },
   printer: {
     queue: optional('PRINTER_QUEUE', 'Brother_QL_1110NWB'),
-    media: optional('PRINTER_MEDIA', 'Custom.103x164mm'),
+    // Empty = let the printer queue's own default media decide (best for
+    // macOS/AirPrint). Set explicitly only if you need a specific media name.
+    media: optional('PRINTER_MEDIA', ''),
     // Label dimensions in millimeters (QL-1110NWB 4x6 shipping label = 103x164mm).
     widthMm: Number(optional('LABEL_WIDTH_MM', '103')),
     heightMm: Number(optional('LABEL_HEIGHT_MM', '164')),
