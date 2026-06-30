@@ -1,6 +1,6 @@
 import { config } from './config.js';
 import { log } from './logger.js';
-import { findOrdersSince } from './shopify.js';
+import { findOrdersSince, findLatestOrder } from './shopify.js';
 import { hasPromptedOrder, markOrderPrompted, highWaterOrderId } from './dedupe.js';
 
 /**
@@ -20,10 +20,24 @@ export function startPoller({ onNewOrder } = {}) {
   }
 
   let running = false;
+  // If we have no history yet (fresh start / no persisted data), seed the
+  // cursor to the latest order so we only prompt for orders that arrive AFTER
+  // startup — never blast the existing backlog.
+  let seeded = highWaterOrderId() > 0;
+
   async function tick() {
     if (running) return;
     running = true;
     try {
+      if (!seeded) {
+        const latest = await findLatestOrder();
+        if (latest) {
+          markOrderPrompted(latest.orderId);
+          log.info(`Poller seeded cursor at ${latest.orderName} — only newer orders will prompt.`);
+        }
+        seeded = true;
+        return;
+      }
       const since = highWaterOrderId();
       const orders = await findOrdersSince(since, 25);
       for (const label of orders) {
