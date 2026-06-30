@@ -31,5 +31,9 @@ RUN mkdir -p /data && chmod +x docker/entrypoint.sh
 
 EXPOSE 8088
 
+# Health: the app serves /healthz once it's up.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://localhost:8088/healthz || exit 1
+
 # entrypoint starts CUPS, registers the network printer, then runs the app.
 ENTRYPOINT ["/app/docker/entrypoint.sh"]

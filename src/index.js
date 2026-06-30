@@ -27,9 +27,11 @@ async function main() {
   let onNewOrder = null;
   if (tg) {
     onNewOrder = tg.promptNewOrder;
-    tg.bot.start({
-      onStart: (info) => log.info(`Telegram bot @${info.username} polling.`),
-    });
+    // Don't let a polling hiccup (e.g. transient 409 during a redeploy) crash
+    // the whole process — log and keep the webhook server running.
+    tg.bot
+      .start({ onStart: (info) => log.info(`Telegram bot @${info.username} polling.`) })
+      .catch((e) => log.error('Telegram bot.start failed:', e.message));
   } else {
     log.warn('Bot disabled — orders will be logged but not printed (no prompt target).');
     onNewOrder = (label) => log.info(`New order ${label.orderName} (no bot to prompt).`);
