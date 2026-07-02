@@ -27,11 +27,10 @@ async function getLabel(orderId) {
 function qtyKeyboard(action, orderId, { withSkip = false, withDownload = false } = {}) {
   const kb = new InlineKeyboard();
   for (let n = 1; n <= MAX; n++) kb.text(String(n), `${action}:${orderId}:${n}`);
-  if (withDownload || withSkip) {
-    kb.row();
-    if (withDownload) kb.text('📄 Download PDF', `dl:${orderId}`);
-    if (withSkip) kb.text('✖ Not now', `skip:${orderId}`);
-  }
+  kb.row();
+  if (withDownload) kb.text('📄 Download PDF', `dl:${orderId}`);
+  if (withSkip) kb.text('✖ Not now', `skip:${orderId}`);
+  else kb.text('✖ Cancel', `cancel:${orderId}`);
   return kb;
 }
 
@@ -252,6 +251,12 @@ export function createBot() {
     await ctx.answerCallbackQuery({ text: 'Skipped' });
     await ctx.editMessageReplyMarkup().catch(() => {});
     await ctx.reply('👍 Skipped. Use /reprint <order#> if you need it later.');
+  });
+  // Cancel a quantity prompt (nothing is printed)
+  bot.callbackQuery(/^cancel:(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery({ text: 'Cancelled' });
+    await ctx.editMessageReplyMarkup().catch(() => {});
+    await ctx.reply('✖ Cancelled — nothing printed.');
   });
 
   bot.catch((err) => log.error('grammY error:', err.message));
