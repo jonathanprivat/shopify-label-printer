@@ -17,10 +17,24 @@ export function cacheLabel(label) {
 }
 async function getLabel(orderId) {
   const key = String(orderId);
-  if (labelCache.has(key)) return labelCache.get(key);
-  const l = await findOrderById(orderId); // needs Shopify creds
-  if (l) cacheLabel(l);
-  return l;
+  const cached = labelCache.get(key);
+  // Always refetch at print time: delivery apps often attach the order note
+  // AFTER the order-created webhook fires, so a label cached at webhook time
+  // can be missing the driver notes. Fall back to the cache if Shopify is
+  // unreachable.
+  try {
+    const fresh = await findOrderById(orderId);
+    if (fresh) {
+      if (!fresh.driverNotes && cached?.driverNotes) fresh.driverNotes = cached.driverNotes;
+      cacheLabel(fresh);
+      return fresh;
+    }
+  } catch (e) {
+    log.warn(`Fresh order lookup failed for ${key}: ${e.message}`);
+    if (cached) return cached;
+    throw e;
+  }
+  return cached || null;
 }
 
 // Inline keyboard: quantity buttons 1..MAX, plus optional Download / Not now.

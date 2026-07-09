@@ -62,6 +62,7 @@ export function renderLabelHtml(label) {
     font-family: Helvetica, Arial, sans-serif;
     color: #000; background: #fff;
     padding: 5mm;
+    overflow: hidden; /* never spill onto a 2nd page/label */
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   .wrap { display: flex; flex-direction: column; height: 100%; }
@@ -73,7 +74,7 @@ export function renderLabelHtml(label) {
     font-size: 9.2mm; line-height: 1.05; padding: 3mm 0;
     white-space: nowrap;
   }
-  .deliver-to { font-weight: 800; font-size: 8mm; margin: 6mm 0 4mm; }
+  .deliver-to { font-weight: 800; font-size: 8mm; margin: 4mm 0 3mm; }
   .addr { font-size: 6.2mm; line-height: 1.25; }
   .addr .name { font-weight: 800; text-transform: uppercase; }
   .phone { font-weight: 800; font-size: 6.6mm; margin-top: 4mm; }
@@ -84,7 +85,7 @@ export function renderLabelHtml(label) {
     font-size: 4.6mm; font-weight: 700; line-height: 1.3;
   }
   /* spacer pushes the order/footer block to the bottom of the label */
-  .spacer { flex: 1 1 auto; min-height: 4mm; }
+  .spacer { flex: 1 1 auto; min-height: 0; }
   .order .cap { font-weight: 800; font-size: 6mm; }
   .order .big {
     font-weight: 800; line-height: 1; white-space: nowrap;
