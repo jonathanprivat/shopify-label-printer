@@ -34,6 +34,19 @@ function cleanNote(s) {
   return str;
 }
 
+// Pretty-print phone numbers for the label, e.g. "+1 (818) 900-3050".
+// 10 digits -> "(XXX) XXX-XXXX"; 11 digits starting with 1 -> "+1 (XXX) XXX-XXXX".
+// Anything else (true international / unusual) is left essentially as-is.
+function formatPhone(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const digits = s.replace(/\D/g, '');
+  const us = (d) => `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6, 10)}`;
+  if (digits.length === 10) return us(digits);
+  if (digits.length === 11 && digits.startsWith('1')) return `+1 ${us(digits.slice(1))}`;
+  return s.startsWith('+') ? `+${digits}` : s;
+}
+
 function adminUrl(pathname) {
   return `https://${config.shopify.shop}/admin/api/${config.shopify.apiVersion}${pathname}`;
 }
@@ -109,7 +122,7 @@ export function gqlOrderToLabel(node, { timestamp } = {}) {
     province: a.provinceCode || a.province || '',
     zip: a.zip || '',
     country: a.country || '',
-    phone: a.phone || node.phone || node.customer?.phone || '',
+    phone: formatPhone(a.phone || node.phone || node.customer?.phone || ''),
     driverNotes,
     route,
     pkg: 'PKG 1 OF 1',
@@ -155,7 +168,7 @@ export function webhookOrderToLabel(order) {
     province: a.province_code || a.province || '',
     zip: a.zip || '',
     country: a.country || '',
-    phone: a.phone || order.phone || order.customer?.phone || '',
+    phone: formatPhone(a.phone || order.phone || order.customer?.phone || ''),
     driverNotes,
     route,
     pkg: 'PKG 1 OF 1',
