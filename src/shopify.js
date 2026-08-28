@@ -65,7 +65,10 @@ async function graphql(query, variables = {}) {
   }
   const json = await res.json();
   if (json.errors) {
-    throw new Error(`Shopify GraphQL errors: ${JSON.stringify(json.errors)}`);
+    // Scope-limited fields (e.g. customer without read_customers) come back as
+    // partial errors alongside usable data — log and continue in that case.
+    if (!json.data) throw new Error(`Shopify GraphQL errors: ${JSON.stringify(json.errors)}`);
+    console.warn('[shopify] partial GraphQL errors (continuing):', JSON.stringify(json.errors.map((e) => e.message)));
   }
   return json.data;
 }
@@ -74,6 +77,8 @@ const ORDER_FIELDS = `
   id
   name
   note
+  sourceName
+  customer { displayName firstName lastName phone }
   customAttributes { key value }
   phone
   createdAt
@@ -82,6 +87,16 @@ const ORDER_FIELDS = `
     name address1 address2 city province provinceCode zip country phone
   }
 `;
+
+// Marketplace channel worth flagging on the label (e.g. "DoorDash").
+// Normal storefront sources (web/pos/numeric app ids) return ''.
+function channelFromSource(sourceName) {
+  const s = String(sourceName || '').trim();
+  if (!s || /^\d+$/.test(s)) return '';
+  const normal = ['web', 'pos', 'iphone', 'android', 'shopify_draft_order', 'checkout_one', 'subscription_contract'];
+  if (normal.includes(s.toLowerCase())) return '';
+  return s;
+}
 
 function gidToNumber(gid) {
   const m = String(gid).match(/(\d+)$/);
@@ -94,6 +109,9 @@ function gidToNumber(gid) {
  */
 export function gqlOrderToLabel(node, { timestamp } = {}) {
   const a = node.shippingAddress || {};
+  const cust = node.customer || {};
+  const custName =
+    cust.displayName || [cust.firstName, cust.lastName].filter(Boolean).join(' ');
   const attrs = node.customAttributes || [];
 
   // Find a delivery-instruction-ish attribute, else fall back to the order note.
@@ -115,7 +133,8 @@ export function gqlOrderToLabel(node, { timestamp } = {}) {
   return {
     orderId: gidToNumber(node.id),
     orderName: node.name, // e.g. "#109348"
-    name: a.name || '',
+    name: a.name || custName || '',
+    channel: channelFromSource(node.sourceName),
     address1: a.address1 || '',
     address2: a.address2 || '',
     city: a.city || '',
@@ -142,6 +161,9 @@ function formatStamp(iso) {
  */
 export function webhookOrderToLabel(order) {
   const a = order.shipping_address || {};
+  const cust = order.customer || {};
+  const custName =
+    [cust.first_name, cust.last_name].filter(Boolean).join(' ') || cust.default_address?.name || '';
   const attrs = order.note_attributes || [];
 
   let driverNotes = '';
@@ -161,7 +183,8 @@ export function webhookOrderToLabel(order) {
   return {
     orderId: order.id,
     orderName: order.name, // "#109348"
-    name: a.name || [a.first_name, a.last_name].filter(Boolean).join(' '),
+    name: a.name || [a.first_name, a.last_name].filter(Boolean).join(' ') || custName,
+    channel: channelFromSource(order.source_name),
     address1: a.address1 || '',
     address2: a.address2 || '',
     city: a.city || '',

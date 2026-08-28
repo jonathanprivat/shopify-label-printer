@@ -77,6 +77,11 @@ export function renderLabelHtml(label) {
   .deliver-to { font-weight: 800; font-size: 8mm; margin: 4mm 0 3mm; }
   .addr { font-size: 6.2mm; line-height: 1.25; }
   .addr .name { font-weight: 800; text-transform: uppercase; }
+  .channel {
+    display: inline-block; background: #000; color: #fff;
+    font-weight: 800; font-size: 5mm; text-transform: uppercase;
+    padding: 1mm 2.5mm; border-radius: 2px; margin-top: 1.5mm;
+  }
   .phone { font-weight: 800; font-size: 6.6mm; margin-top: 4mm; }
   .label-heading { font-weight: 800; font-size: 5.5mm; margin-top: 4mm; }
   .notes-box {
@@ -107,6 +112,7 @@ export function renderLabelHtml(label) {
       <div class="deliver-to">DELIVER TO:</div>
       <div class="addr">
         <div class="name">${esc(label.name)}</div>
+        ${label.channel ? `<div><span class="channel">${esc(label.channel)} order</span></div>` : ''}
         ${addressLines}
         ${cityLine ? `<div>${cityLine}</div>` : ''}
       </div>
