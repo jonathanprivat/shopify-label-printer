@@ -145,13 +145,26 @@ export function createBot() {
       (label.driverNotes ? `📝 Notes: ${label.driverNotes.replace(/\n/g, ' · ')}\n\n` : '') +
       `Print the label now? Choose how many packages:`;
     for (const id of owners) {
+      // Fire-and-forget with retries; don't block the webhook/poller loop.
+      void sendPromptWithRetry(id, text, {
+        parse_mode: 'Markdown',
+        reply_markup: qtyKeyboard('p', label.orderId, { withSkip: true, withDownload: true }),
+      });
+    }
+  }
+
+  // Retry over ~8 minutes so a transient network blip (e.g. right after the
+  // Mac wakes from sleep) doesn't permanently eat a new-order prompt.
+  async function sendPromptWithRetry(id, text, opts) {
+    const delaysMs = [0, 30_000, 120_000, 300_000];
+    for (let i = 0; i < delaysMs.length; i++) {
+      if (delaysMs[i]) await new Promise((r) => setTimeout(r, delaysMs[i]));
       try {
-        await bot.api.sendMessage(id, text, {
-          parse_mode: 'Markdown',
-          reply_markup: qtyKeyboard('p', label.orderId, { withSkip: true, withDownload: true }),
-        });
+        await bot.api.sendMessage(id, text, opts);
+        if (i > 0) log.info(`Prompted owner ${id} after ${i + 1} attempts.`);
+        return;
       } catch (e) {
-        log.warn(`Could not prompt owner ${id}: ${e.message}`);
+        log.warn(`Could not prompt owner ${id} (attempt ${i + 1}/${delaysMs.length}): ${e.message}`);
       }
     }
   }
