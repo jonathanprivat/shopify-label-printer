@@ -48,6 +48,7 @@ export async function renderLabelPdf(label, { suffix = '' } = {}) {
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
       preferCSSPageSize: true, // honor @page size in the template
+      pageRanges: '1', // a label is exactly one page — never emit a spill page
     });
 
     log.info(`Rendered label -> ${file}`);

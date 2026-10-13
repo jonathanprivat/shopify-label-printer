@@ -34,6 +34,21 @@ function cleanNote(s) {
   return str;
 }
 
+// Build driver notes from delivery-app attributes (headless storefronts send
+// delivery fields as separate attributes): one "Key: value" line each, with
+// unwanted fields (location) dropped and the "Delivery " prefix trimmed.
+function attrsToNotes(pairs) {
+  const lines = [];
+  for (const [key, value] of pairs) {
+    if (!key || !value) continue;
+    const k = String(key).trim();
+    if (!NOTE_KEYS.some((n) => k.toLowerCase().includes(n))) continue;
+    if (NOTE_DROP.some((d) => k.toLowerCase().includes(d))) continue;
+    lines.push(`${k.replace(/^delivery\s+/i, '')}: ${cleanNote(value)}`);
+  }
+  return lines.join('\n');
+}
+
 // Pretty-print phone numbers for the label, e.g. "+1 (818) 900-3050".
 // 10 digits -> "(XXX) XXX-XXXX"; 11 digits starting with 1 -> "+1 (XXX) XXX-XXXX".
 // Anything else (true international / unusual) is left essentially as-is.
@@ -114,16 +129,8 @@ export function gqlOrderToLabel(node, { timestamp } = {}) {
     cust.displayName || [cust.firstName, cust.lastName].filter(Boolean).join(' ');
   const attrs = node.customAttributes || [];
 
-  // Find a delivery-instruction-ish attribute, else fall back to the order note.
-  let driverNotes = '';
-  const parts = [];
-  for (const { key, value } of attrs) {
-    if (!value) continue;
-    if (NOTE_KEYS.some((k) => key.toLowerCase().includes(k))) {
-      parts.push(`${key}: ${value}`);
-    }
-  }
-  driverNotes = cleanNote(parts.join('. '));
+  // Delivery-instruction-ish attributes (one tidy line each), else the note.
+  let driverNotes = attrsToNotes(attrs.map(({ key, value }) => [key, value]));
   if (!driverNotes && node.note) driverNotes = cleanNote(node.note);
 
   // Route: look for a "route" custom attribute, else from the shipping method.
@@ -166,15 +173,7 @@ export function webhookOrderToLabel(order) {
     [cust.first_name, cust.last_name].filter(Boolean).join(' ') || cust.default_address?.name || '';
   const attrs = order.note_attributes || [];
 
-  let driverNotes = '';
-  const parts = [];
-  for (const { name, value } of attrs) {
-    if (!value) continue;
-    if (NOTE_KEYS.some((k) => String(name).toLowerCase().includes(k))) {
-      parts.push(`${name}: ${value}`);
-    }
-  }
-  driverNotes = cleanNote(parts.join('. '));
+  let driverNotes = attrsToNotes(attrs.map(({ name, value }) => [name, value]));
   if (!driverNotes && order.note) driverNotes = cleanNote(order.note);
 
   const routeAttr = attrs.find((x) => String(x.name).toLowerCase() === 'route');
