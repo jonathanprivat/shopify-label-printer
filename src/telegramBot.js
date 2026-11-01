@@ -140,9 +140,12 @@ export function createBot() {
       log.warn(`New order ${label.orderName} but no Telegram owner yet — send /start to the bot.`);
       return;
     }
+    // Escape chars Telegram's legacy Markdown parser treats as entity markers,
+    // so order text (names, notes) can't 400 the whole message.
+    const escMd = (s) => String(s ?? '').replace(/([_*`\[])/g, '\\$1');
     const text =
-      `🆕 *New order* ${summary(label)}\n\n` +
-      (label.driverNotes ? `📝 Notes: ${label.driverNotes.replace(/\n/g, ' · ')}\n\n` : '') +
+      `🆕 *New order* ${escMd(summary(label))}\n\n` +
+      (label.driverNotes ? `📝 Notes: ${escMd(label.driverNotes.replace(/\n/g, ' · '))}\n\n` : '') +
       `Print the label now? Choose how many packages:`;
     for (const id of owners) {
       // Fire-and-forget with retries; don't block the webhook/poller loop.
